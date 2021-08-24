@@ -1,0 +1,7 @@
+pycharm 2019.3.2
+python 3.7
+keras - 2.3.1
+tensorflow - 2.0.0
+opencv-python - 4.5.3.56
+opcua - 0.98.13
+numpy - 1.19.5 (1.21.1)
