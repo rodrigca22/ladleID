@@ -26,12 +26,12 @@ def createHSVTrackbars(windowName='HSVTrackBars', HueMin=0, HueMax=179, SatMin=0
 
     # CREATE HSV TRACKBARS
 
-    cv2.createTrackbar("Hue Min", windowName, HueMin, 179, updateSaveTrackbarsValues)
-    cv2.createTrackbar("Hue Max", windowName, HueMax, 179, updateSaveTrackbarsValues)
-    cv2.createTrackbar("Sat Min", windowName, SatMin, 255, updateSaveTrackbarsValues)
-    cv2.createTrackbar("Sat Max", windowName, SatMax, 255, updateSaveTrackbarsValues)
-    cv2.createTrackbar("Val Min", windowName, ValMin, 255, updateSaveTrackbarsValues)
-    cv2.createTrackbar("Val Max", windowName, ValMax, 255, updateSaveTrackbarsValues)
+    cv2.createTrackbar("Hue Min", windowName, HueMin, 179, updateSaveHSVTrackbarsValues)
+    cv2.createTrackbar("Hue Max", windowName, HueMax, 179, updateSaveHSVTrackbarsValues)
+    cv2.createTrackbar("Sat Min", windowName, SatMin, 255, updateSaveHSVTrackbarsValues)
+    cv2.createTrackbar("Sat Max", windowName, SatMax, 255, updateSaveHSVTrackbarsValues)
+    cv2.createTrackbar("Val Min", windowName, ValMin, 255, updateSaveHSVTrackbarsValues)
+    cv2.createTrackbar("Val Max", windowName, ValMax, 255, updateSaveHSVTrackbarsValues)
 
 
 def captureHSVTrackbarValues(windowName='HSVTrackBars'):
@@ -45,7 +45,7 @@ def captureHSVTrackbarValues(windowName='HSVTrackBars'):
     v_max = cv2.getTrackbarPos("Val Max", windowName)
     lowerb = np.array([h_min, s_min, v_min], dtype=np.uint8)
     upperb = np.array([h_max, s_max, v_max], dtype=np.uint8)
-    return lowerb, upperb  # ,h_min,h_max,s_min,s_max,v_min,v_max
+    return lowerb, upperb, [h_min,h_max,s_min,s_max,v_min,v_max]
 
 
 def createThresTrackbars(windowName='ThresholdTrackBars', ThresLeft=127, ThresRight=127):
@@ -55,8 +55,8 @@ def createThresTrackbars(windowName='ThresholdTrackBars', ThresLeft=127, ThresRi
 
     # CREATE THRESHOLD TRACKBARS
 
-    cv2.createTrackbar("Thres Left", windowName, ThresLeft, 255, updateSaveTrackbarsValues)
-    cv2.createTrackbar("Thres Right", windowName, ThresRight, 255, updateSaveTrackbarsValues)
+    cv2.createTrackbar("Thres Left", windowName, ThresLeft, 255, updateSaveThreshTrackbarsValues)
+    cv2.createTrackbar("Thres Right", windowName, ThresRight, 255, updateSaveThreshTrackbarsValues)
 
 
 def captureThresTrackbarsValues(windowName='ThresholdTrackBars'):
@@ -68,24 +68,35 @@ def captureThresTrackbarsValues(windowName='ThresholdTrackBars'):
     return thr_left, thr_right
 
 
-def updateSaveTrackbarsValues(windowName='ThresholdTrackBars'):
+def updateSaveHSVTrackbarsValues(windowName='ThresholdTrackBars'):
     config = ConfigParser()
     config.read('config.ini')
     # SAVE HSV FILTER TRACK BAR VALUE
-    config.set('HSV_Filter', 'huemin', str(cv2.getTrackbarPos('Hue Min', 'HSVTrackBars')))
-    config.set('HSV_Filter', 'huemax', str(cv2.getTrackbarPos('Hue Max', 'HSVTrackBars')))
-    config.set('HSV_Filter', 'satmin', str(cv2.getTrackbarPos('Sat Min', 'HSVTrackBars')))
-    config.set('HSV_Filter', 'satmax', str(cv2.getTrackbarPos('Sat Max', 'HSVTrackBars')))
-    config.set('HSV_Filter', 'valmin', str(cv2.getTrackbarPos('Val Min', 'HSVTrackBars')))
-    config.set('HSV_Filter', 'valmax', str(cv2.getTrackbarPos('Val Max', 'HSVTrackBars')))
+    config.set('HSV_Filter', 'huemin1', str(cv2.getTrackbarPos('Hue Min', 'HSV Left Filter')))
+    config.set('HSV_Filter', 'huemax1', str(cv2.getTrackbarPos('Hue Max', 'HSV Left Filter')))
+    config.set('HSV_Filter', 'satmin1', str(cv2.getTrackbarPos('Sat Min', 'HSV Left Filter')))
+    config.set('HSV_Filter', 'satmax1', str(cv2.getTrackbarPos('Sat Max', 'HSV Left Filter')))
+    config.set('HSV_Filter', 'valmin1', str(cv2.getTrackbarPos('Val Min', 'HSV Left Filter')))
+    config.set('HSV_Filter', 'valmax1', str(cv2.getTrackbarPos('Val Max', 'HSV Left Filter')))
+    config.set('HSV_Filter', 'huemin2', str(cv2.getTrackbarPos('Hue Min', 'HSV Right Filter')))
+    config.set('HSV_Filter', 'huemax2', str(cv2.getTrackbarPos('Hue Max', 'HSV Right Filter')))
+    config.set('HSV_Filter', 'satmin2', str(cv2.getTrackbarPos('Sat Min', 'HSV Right Filter')))
+    config.set('HSV_Filter', 'satmax2', str(cv2.getTrackbarPos('Sat Max', 'HSV Right Filter')))
+    config.set('HSV_Filter', 'valmin2', str(cv2.getTrackbarPos('Val Min', 'HSV Right Filter')))
+    config.set('HSV_Filter', 'valmax2', str(cv2.getTrackbarPos('Val Max', 'HSV Right Filter')))
+    with open('config.ini', 'w') as f:
+        config.write(f)
 
-    # SAVE THRESHOLD TRACK BAR VALUE
+def updateSaveThreshTrackbarsValues(windowName='ThresholdTrackBars'):
+    config = ConfigParser()
+    config.read('config.ini')
+# SAVE THRESHOLD TRACK BAR VALUE
     config.set('image_processing', 'thresholdladleleft', str(cv2.getTrackbarPos('Thres Left', 'ThresholdTrackBars')))
     config.set('image_processing', 'thresholdladleright', str(cv2.getTrackbarPos('Thres Right', 'ThresholdTrackBars')))
 
     with open('config.ini', 'w') as f:
         config.write(f)
-    print("Saved Values!")
+
 
 
 def removeBadContours(img, contours):
@@ -158,6 +169,9 @@ class DetectionBox:
         self.title_thickness = 2
         self.validated_number = None
         self.validation_sample_target = 50
+        self.picked = False
+        self.picked_offset = [0,0]
+        self.value_validation_list = []
         self.left_digit_probability = 0
         self.right_digit_probability = 0
         self.cnn_certainty = 0.9
@@ -165,6 +179,7 @@ class DetectionBox:
         self.pt2 = [self.pos_xy[0] + self.size[0], self.pos_xy[1] + self.size[1]]
         self.box = [self.pt1, self.pt2, w, h]
         self.color = color
+        self.corner_color = self.color
         self.colorHSVFilter = [0, 179, 0, 255, 0, 255]
         ### LOAD CONVOLUTIONAL NEURAL NETWORK MODEL
         pickle_in = open("model_trained_20.p", "rb")
@@ -188,9 +203,10 @@ class DetectionBox:
         cv2.rectangle(image, self.pt1, self.pt2, self.color, self.thickness)
         cv2.putText(image, f'{self.title} => ' + str(self.validated_number), (self.pos_xy[0], self.pos_xy[1] - 10),
                     cv2.FONT_HERSHEY_PLAIN, 1, self.color, self.title_thickness)
-        self.draw_border(image, (0, 255, 0), 4, 5, 10)
+        self.__draw_border(image, self.corner_color, 4, 5, 10)
+        return image
 
-    def draw_border(self, image, color, thickness, r, d):
+    def __draw_border(self, image, color, thickness, r, d):
         x1, y1 = self.pt1
         x2, y2 = self.pt2
         # Top left
@@ -215,14 +231,14 @@ class DetectionBox:
         self.pt1 = [x, y]
         self.pt2 = [x + self.size[0], y + self.size[1]]
 
-    def __validate_number(self, number, number_list=[], sample_target=50):
-        number_list.append(number)
+    def __validate_number(self, number, sample_target=50):
+        self.value_validation_list.append(number)
 
-        if len(number_list) > sample_target: number_list.pop(0)
+        if len(self.value_validation_list) > sample_target: self.value_validation_list.pop(0)
         i = 0
         m = 0
         for cnt in range(0, 1):
-            for x in number_list:
+            for x in self.value_validation_list:
                 if i == 0:
                     m = x
                     i = 1
@@ -230,7 +246,7 @@ class DetectionBox:
                     i += i
                 else:
                     i = i - 1
-        return m, number_list
+        return m
 
     @staticmethod
     def draw_bounding_box(image, bbox, color_bgr=(0, 255, 0), thickness=2, bias=0):
@@ -328,7 +344,7 @@ class DetectionBox:
 
     def __hsv_filter(self):
         """
-        Assembles lower HSV boundary and upper HSV boundaryc color range for masking
+        Assembles lower HSV boundary and upper HSV boundary color range for masking
         :return: lowerb and upperb containing two ranges of HSV colors
         """
         h_min = self.colorHSVFilter[0]
@@ -342,6 +358,11 @@ class DetectionBox:
         upperb = np.array([h_max, s_max, v_max], dtype=np.uint8)
         return lowerb, upperb
 
+    def __update_value(self,value):
+        self.value = value
+        # Validate number by finding majority
+        self.validated_number = self.__validate_number(value, sample_target=self.validation_sample_target)
+
     def detect(self, image):
         """
 
@@ -349,6 +370,8 @@ class DetectionBox:
         :return: Returns annotated image with drawn box and information about detected number
         """
         detected_box_numbers = []   # Stores box coordinates where potential digits are, after shape filters
+        self.__update_value(None)   # Adds a None value to the voting list, if a number is detected later, this last
+        # NONE is removed and replaced with the number
 
         img = self.pre_process_img(image)   # Pass full unmodified frame, return extracted box image ready to find
                                             # contours, image returns with only 1 chnl, black over white background
@@ -431,9 +454,13 @@ class DetectionBox:
                 # Check if the certainties for both digits are higher than expected
                 if self.left_digit_probability > self.cnn_certainty and self.right_digit_probability > self.cnn_certainty:
                     # self.value = (int(str(self.left_digit) + str(self.right_digit)))
-                    self.value = self.left_digit * 10 + self.right_digit    # Store number if it was recognised ok
+                    self.value_validation_list.pop(-1)  # Digits were found, remove last None and replace with current value
+                    self.__update_value(self.left_digit * 10 + self.right_digit) # Store number if it was recognised ok
+
                     # Validate number by finding majority
-                    self.validated_number, _ = self.__validate_number(self.value,sample_target=self.validation_sample_target)
+                    # self.validated_number, _ = self.__validate_number(self.value,sample_target=self.validation_sample_target)
+
+
                 detected_box_numbers = []   # Clear detected boxes for new detection if two boxes where in
                 break   # Exit and stop looking for contours, we already found two, wait for next frame
         self.image = image_canvas.copy()    # Copy the annotated image on the class

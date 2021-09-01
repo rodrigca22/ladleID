@@ -15,12 +15,18 @@ def writeDefaultConfig():
     }
 
     config['HSV_Filter'] = {
-        "hueMin": "0",
-        "hueMax": "179",
-        "satMin": "0",
-        "satMax": "72",
-        "valMin": "65",
-        "valMax": "176"
+        "hueMin1": "0",
+        "hueMax1": "179",
+        "satMin1": "0",
+        "satMax1": "255",
+        "valMin1": "65",
+        "valMax1": "255",
+        "hueMin2": "0",
+        "hueMax2": "179",
+        "satMin2": "0",
+        "satMax2": "255",
+        "valMin2": "65",
+        "valMax2": "255"
     }
     config['opc-ua_server'] = {
         'enable_OPC_Server': 'True',
