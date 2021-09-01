@@ -8,6 +8,11 @@ import sys
 from configparser import ConfigParser
 import csv
 
+#################################
+
+box1 = myUtils.DetectionBox()
+
+#################################
 
 print('Starting up...')
 ### APP CONFIGURATION LOAD ##
@@ -24,8 +29,6 @@ if opcServerEnabled:
     ### Register NameSpace
     namespace = server.register_namespace("Ladles")
     node = server.get_objects_node()
-    # print(objects)
-    # ladlesOPCObj = node.add_object('ns=2; s="Ladle Number"','Ladle Numbers')
     ladlesOPCObj = node.add_object(namespace, 'Ladle Numbers')
     ladleLeftOPCVar = ladlesOPCObj.add_variable(namespace, "Left Ladle No", 0)
     ladleRightOPCVar = ladlesOPCObj.add_variable(namespace, "Right Ladle No", 0)
@@ -80,6 +83,8 @@ y2 = parser.getint('box_coordinates','y2')
 h2 = parser.getint('box_coordinates','h2')
 w2 = parser.getint('box_coordinates','w2')
 
+leftLadleBoxLocked = False
+rightLadleBoxLocked = False
 
 # thresholdladleLeft = 220
 # thresholdladleRight = 180
@@ -198,12 +203,12 @@ def preProcessImg(img, x, y, h, w, scaleFactor=1, thresholdSet=128):
 def findNumberContours(image):
     detectedBboxNumbers = []
     detectedNumber = None
-
     imgCanny = cv2.Canny(image, 100, 150)
     imgContours, hierarchy = cv2.findContours(imgCanny, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     # imageNew = removeBadContours(image,contours=imgContours)
 
     image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+
     imageCanvas = image.copy()
     # image = removeBadContours(image,imgContours)
 
@@ -280,16 +285,39 @@ def findNumberContours(image):
 
     return imageCanvas, detectedNumber
 
+def mousePoints(event,x,y,flags,params):
 
+    if event == cv2.EVENT_LBUTTONDOWN:
+        box1.update(x,y)
+        box1.detect(img)
+    # if event == cv2.EVENT_LBUTTONDOWN:
+        # if x1<x<x1+w1 and y1<y<y1+h1:
+        #     leftLadleBoxLocked = True
+    #
+    #     if x2<x<x2+w2 and y2<y<y2+h2:
+    #         rightLadleBoxLocked = True
+    #
+    # if event == cv2.EVENT_LBUTTONUP:
+    #     leftLadleBoxLocked = False
+    #     rightLadleBoxLocked = False
+    #     # print(f'Mouse is at X={x},Y={y}')
+    #
+    # if event == cv2.EVENT_MOUSEMOVE:
+    #
+    #     if leftLadleBoxLocked == True:
+    #         x1,y1 = x,y
+    #     if rightLadleBoxLocked:
+    #         x1, y1 = x, y
 ### MAIN LOOP ###
 while True:
     ret, img = cap.read()
-    # img = cv2.imread('Resources/PinkTest2.png')
     if ret == False:
         continue
 
     lHSV, uHSV = myUtils.captureHSVTrackbarValues()
-    thresholdladleLeft,thresholdladleRight = myUtils.captureThresTrackbarsValues()
+    thresholdladleLeft, thresholdladleRight = myUtils.captureThresTrackbarsValues()
+    box1.thresholdValue, _ = myUtils.captureThresTrackbarsValues()
+
 
     imgLadleLeft = preProcessImg(img, x1, y1, h1, w1, scaleFactor, thresholdSet=thresholdladleLeft)
     imgLadleRight = preProcessImg(img, x2, y2, h2, w2, scaleFactor, thresholdSet=thresholdladleRight)
@@ -299,10 +327,10 @@ while True:
 
     ladleLeftNumberSamples.append(ladleLeftNumber)
     validatedLeftLadleNumber = myUtils.findNumberMajority(ladleLeftNumberSamples)
-    print(ladleLeftNumberSamples, validatedLeftLadleNumber)
+    # print(ladleLeftNumberSamples, validatedLeftLadleNumber)
     ladleRightNumberSamples.append(ladleRightNumber)
     validatedRightLadleNumber = myUtils.findNumberMajority(ladleRightNumberSamples)
-    print(ladleRightNumberSamples, validatedRightLadleNumber)
+    # print(ladleRightNumberSamples, validatedRightLadleNumber)
 
     if len(ladleLeftNumberSamples) >= maxNumberSamples:
         ladleLeftNumberSamples.pop(0)
@@ -356,8 +384,8 @@ while True:
         ladleLeftOPCVar.set_value(validatedLeftLadleNumber)
         ladleRightOPCVar.set_value(validatedRightLadleNumber)
 
-    print("Left ladle is = ", ladleLeftNumber)
-    print("Right ladle is = ", ladleRightNumber)
+    # print("Left ladle is = ", ladleLeftNumber)
+    # print("Right ladle is = ", ladleRightNumber)
 
     ### NEURAL NETWORK
     # classIndexLeft, probValLeft = imgCNNpredict(imgLadleLeft)
@@ -368,16 +396,23 @@ while True:
 
     # imgRGB = cv2.cvtColor(imgLadleLeft, cv2.COLOR_BGR2RGB)
 
+    test= box1.pre_process_img(img)
+    cv2.imshow('From Preprocess',test)
+    testdetect = box1.detect(img)
+    cv2.imshow('From Detect',testdetect)
 
-    cv2.rectangle(img, (x1, y1), (x1 + w1, y1 + w1), (0, 255, 0), 2)
-    cv2.putText(img, "Left Ladle => " + str(validatedLeftLadleNumber), (x1, y1 - 10), cv2.FONT_HERSHEY_PLAIN, 1,
-                (0, 255, 0), 2)
-    cv2.rectangle(img, (x2, y2), (x2 + w2, y2 + w2), (0, 0, 255), 2)
-    cv2.putText(img, "Right Ladle => " + str(validatedRightLadleNumber), (x2, y2 - 10), cv2.FONT_HERSHEY_PLAIN, 1,
-                (0, 0, 255), 2)
-    cv2.imshow("Ladle Left", imgLeftLadleDetection)
-    cv2.imshow("Ladle Right", imgRightLadleDetection)
+    box1.draw(img)
+    # cv2.rectangle(img, (x1, y1), (x1 + w1, y1 + w1), (0, 255, 0), 2)
+    # cv2.putText(img, "Left Ladle => " + str(validatedLeftLadleNumber), (x1, y1 - 10), cv2.FONT_HERSHEY_PLAIN, 1,
+    #             (0, 255, 0), 2)
+    # cv2.rectangle(img, (x2, y2), (x2 + w2, y2 + w2), (0, 0, 255), 2)
+    # cv2.putText(img, "Right Ladle => " + str(validatedRightLadleNumber), (x2, y2 - 10), cv2.FONT_HERSHEY_PLAIN, 1,
+    #             (0, 0, 255), 2)
+    # cv2.imshow("Ladle Left", imgLeftLadleDetection)
+    # cv2.imshow("Ladle Right", imgRightLadleDetection)
     cv2.imshow("Video Feed", img)
+    cv2.setMouseCallback('Video Feed',mousePoints)
+
     if cv2.waitKey(parser.getint('video_feed','frame_delay',fallback=500)) & 0xFF == ord('q'):
         cap.release()
         cv2.destroyAllWindows()
