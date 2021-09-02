@@ -28,7 +28,7 @@ def writeDefaultConfig():
         "valMin2": "65",
         "valMax2": "255"
     }
-    config['opc-ua_server'] = {
+    config['opc-ua-server'] = {
         'enable_OPC_Server': 'True',
         'endpoint': '127.0.0.1',
         'port': '5000'

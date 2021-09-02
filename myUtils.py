@@ -97,7 +97,15 @@ def updateSaveThreshTrackbarsValues(windowName='ThresholdTrackBars'):
     with open('config.ini', 'w') as f:
         config.write(f)
 
-
+def updateSaveBoxPosition(box_list):
+    config = ConfigParser()
+    config.read('config.ini')
+    config.set('box_coordinates', 'x1', str(box_list[0].pos_xy[0]))
+    config.set('box_coordinates', 'y1', str(box_list[0].pos_xy[1]))
+    config.set('box_coordinates', 'x2', str(box_list[1].pos_xy[0]))
+    config.set('box_coordinates', 'y2', str(box_list[1].pos_xy[1]))
+    with open('config.ini', 'w') as f:
+        config.write(f)
 
 def removeBadContours(img, contours):
     mask = np.zeros(img.shape, dtype="uint8")
@@ -169,8 +177,8 @@ class DetectionBox:
         self.title_thickness = 2
         self.validated_number = None
         self.validation_sample_target = 50
-        self.picked = False
-        self.picked_offset = [0,0]
+        self.selected = False
+        self.selected_offset = [0,0]
         self.value_validation_list = []
         self.left_digit_probability = 0
         self.right_digit_probability = 0
@@ -200,10 +208,14 @@ class DetectionBox:
         self.max_fill_dregree = 0.9
 
     def draw(self, image):
+
         cv2.rectangle(image, self.pt1, self.pt2, self.color, self.thickness)
         cv2.putText(image, f'{self.title} => ' + str(self.validated_number), (self.pos_xy[0], self.pos_xy[1] - 10),
                     cv2.FONT_HERSHEY_PLAIN, 1, self.color, self.title_thickness)
-        self.__draw_border(image, self.corner_color, 4, 5, 10)
+        if self.selected:
+            self.__draw_border(image, self.corner_color, 8, 5, 10)
+        else:
+            self.__draw_border(image, self.corner_color, 4, 5, 10)
         return image
 
     def __draw_border(self, image, color, thickness, r, d):
@@ -438,8 +450,6 @@ class DetectionBox:
                 self.draw_bounding_box(image_canvas, bbox, (0, 255, 0), 2, -2)  # Bbox passed filter and contains
                 # possible digit, draw a box around it on canvas to identify it was captured
 
-                # REMOVE THIS cv2.rectangle(image_canvas, (bbox[0], bbox[1]), (bbox[0] + bbox[2], bbox[1] + bbox[3]), (0, 255, 0), 2)
-
             if len(detected_box_numbers) == 2:  # Triggers when two bboxes are in the list whose passed all filters
                 # Two bounding boxes containing a potential digit are available
                 detected_box_numbers.sort() # Sort detected digit boxes so the lowest x is the left digit
@@ -456,9 +466,6 @@ class DetectionBox:
                     # self.value = (int(str(self.left_digit) + str(self.right_digit)))
                     self.value_validation_list.pop(-1)  # Digits were found, remove last None and replace with current value
                     self.__update_value(self.left_digit * 10 + self.right_digit) # Store number if it was recognised ok
-
-                    # Validate number by finding majority
-                    # self.validated_number, _ = self.__validate_number(self.value,sample_target=self.validation_sample_target)
 
 
                 detected_box_numbers = []   # Clear detected boxes for new detection if two boxes where in

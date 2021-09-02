@@ -19,7 +19,7 @@ parser.read('config.ini')
 opcServerEnabled = parser.getboolean('opc-ua-server','enable_opc_server',fallback=False)
 if opcServerEnabled:
     server = opcServer.Server()
-    opcEndpoint = 'opc.tcp://' + parser.get('opc-ua_server','endpoint') +':'+ parser.get('opc-ua_server','port',fallback=5000)
+    opcEndpoint = 'opc.tcp://' + parser.get('opc-ua-server','endpoint') +':'+ parser.get('opc-ua-server','port',fallback=5000)
     server.set_endpoint(opcEndpoint)
 
     ### Register NameSpace
@@ -38,10 +38,6 @@ if opcServerEnabled:
 ### NEURAL NETWORK DETECTION THRESHOLD ###
 # cnnCertainty = 0.9  # LEVEL OF NEURAL NETWORK CERTAINTY 0-1 (0-100%) HOW CONFIDENT IS THE CNN IN THE RESULT
 cnnCertainty = parser.getfloat('neural_network','mincertainty')
-
-### LOAD CONVOLUTIONAL NEURAL NETWORK MODEL
-pickle_in = open("model_trained_20.p", "rb")
-model = pickle.load(pickle_in)
 
 
 # CROPPING AND SCALING
@@ -103,8 +99,6 @@ colorFilterON = parser.getboolean('settings','colorfilteron')
 usePresetHSVFilter = parser.getboolean('settings','usepresethsvfilter')
 
 ### COLOR HSF FILTER PRESET (HueMin,HueMax,SatMin,SatMax,ValMin,ValMax)
-# colorHSVFilter1 = (0,179,0,91,33,255)  # PINK PRESET HSV RANGE
-# colorHSVFilter1 = (0,179,0,72,65,176)  # NUMBER COLOR PRESET HSV RANGE
 
 colorHSVFilter1 = (parser.getint('HSV_Filter','huemin1'),
                   parser.getint('HSV_Filter','huemax1'),
@@ -150,12 +144,14 @@ left_ladle_box.title_thickness = 1
 left_ladle_box.update(x1,y1)
 left_ladle_box.colorHSVFilter = colorHSVFilter1
 left_ladle_box.thresholdValue = thresholdladleleft
+left_ladle_box.validation_sample_target = maxNumberSamples
 
 right_ladle_box.title = 'Right Ladle'
 right_ladle_box.corner_color = (255,0,0)
 right_ladle_box.title_thickness = 1
 right_ladle_box.colorHSVFilter = colorHSVFilter2
 right_ladle_box.thresholdValue = thresholdladleright
+right_ladle_box.validation_sample_target = maxNumberSamples
 
 right_ladle_box.update(x2,y2)
 # ============================================
@@ -178,21 +174,22 @@ def mousePoints(event,x,y,flags,params):
 
     if event == cv2.EVENT_MOUSEMOVE:
         for obj in detection_boxes:
-            if obj.picked:
-                obj.update(x-obj.picked_offset[0],y-obj.picked_offset[1])
+            if obj.selected:
+                obj.update(x-obj.selected_offset[0],y-obj.selected_offset[1])
 
     if event == cv2.EVENT_LBUTTONDOWN:
         for obj in detection_boxes:
             x1, y1 = obj.pos_xy
             w1, h1 = obj.size
             if x1 < x < x1 + w1 and y1 < y < y1 + h1:
-                obj.picked = True
-                obj.picked_offset = [x-obj.pos_xy[0],y-obj.pos_xy[1]]
-                print(f'Picked box {obj.title}')
+                obj.selected = True
+                obj.selected_offset = [x-obj.pos_xy[0],y-obj.pos_xy[1]]
+                print(f'selected box {obj.title}')
 
     if event == cv2.EVENT_LBUTTONUP:
         for obj in detection_boxes:
-            obj.picked = False
+            obj.selected = False
+            myUtils.updateSaveBoxPosition(detection_boxes)
         # print(f'Mouse is at X={x},Y={y}')
 
 ### MAIN LOOP ###
@@ -203,7 +200,7 @@ while True:
     if ret == False:
         continue
 
-
+    img = cv2.cvtColor(img,cv2.COLOR_BGR2BGRA)
 
     _, _, left_ladle_box.colorHSVFilter = myUtils.captureHSVTrackbarValues("HSV Left Filter")
     _, _, right_ladle_box.colorHSVFilter = myUtils.captureHSVTrackbarValues("HSV Right Filter")

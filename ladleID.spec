@@ -1,4 +1,13 @@
 # -*- mode: python ; coding: utf-8 -*-
+from PyInstaller.utils.hooks import collect_all
+
+datas = [('model_trained_20.p', '.'), ('config.ini', '.')]
+binaries = []
+hiddenimports = []
+tmp_ret = collect_all('tensorflow')
+datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
+tmp_ret = collect_all('keras')
+datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 
 
 block_cipher = None
@@ -6,9 +15,9 @@ block_cipher = None
 
 a = Analysis(['ladleID.py'],
              pathex=['C:\\Users\\rodrigc\\PycharmProjects\\ladleID'],
-             binaries=[],
-             datas=[('model_trained_20.p', '.'), ('config.ini', '.')],
-             hiddenimports=[],
+             binaries=binaries,
+             datas=datas,
+             hiddenimports=hiddenimports,
              hookspath=[],
              hooksconfig={},
              runtime_hooks=[],
