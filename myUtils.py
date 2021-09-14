@@ -13,6 +13,18 @@ def drawBoundingBox(img, bbox, colorBGR=(0, 255, 0), thickness=2, bias=0):
                   2)
 
 
+def draw_text_on_top_left_corner(image, text=()):
+    padding = 10
+    v_offset = 0
+    line_spacing = 20
+    curr_line = 0
+
+    for line in text:
+        curr_line += line_spacing
+        cv2.putText(image, line, (padding, curr_line + v_offset), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+    return image
+
+
 # 2 - CROPS AN IMAGE
 def cropImage(img, x, y, height, width):
     imgCrop = img[y:y + height, x:x + width]
@@ -45,7 +57,7 @@ def captureHSVTrackbarValues(windowName='HSVTrackBars'):
     v_max = cv2.getTrackbarPos("Val Max", windowName)
     lowerb = np.array([h_min, s_min, v_min], dtype=np.uint8)
     upperb = np.array([h_max, s_max, v_max], dtype=np.uint8)
-    return lowerb, upperb, [h_min,h_max,s_min,s_max,v_min,v_max]
+    return lowerb, upperb, [h_min, h_max, s_min, s_max, v_min, v_max]
 
 
 def createThresTrackbars(windowName='ThresholdTrackBars', ThresLeft=127, ThresRight=127):
@@ -87,15 +99,17 @@ def updateSaveHSVTrackbarsValues(windowName='ThresholdTrackBars'):
     with open('config.ini', 'w') as f:
         config.write(f)
 
+
 def updateSaveThreshTrackbarsValues(windowName='ThresholdTrackBars'):
     config = ConfigParser()
     config.read('config.ini')
-# SAVE THRESHOLD TRACK BAR VALUE
+    # SAVE THRESHOLD TRACK BAR VALUE
     config.set('image_processing', 'thresholdladleleft', str(cv2.getTrackbarPos('Thres Left', 'ThresholdTrackBars')))
     config.set('image_processing', 'thresholdladleright', str(cv2.getTrackbarPos('Thres Right', 'ThresholdTrackBars')))
 
     with open('config.ini', 'w') as f:
         config.write(f)
+
 
 def updateSaveBoxPosition(box_list):
     config = ConfigParser()
@@ -106,6 +120,7 @@ def updateSaveBoxPosition(box_list):
     config.set('box_coordinates', 'y2', str(box_list[1].pos_xy[1]))
     with open('config.ini', 'w') as f:
         config.write(f)
+
 
 def removeBadContours(img, contours):
     mask = np.zeros(img.shape, dtype="uint8")
@@ -162,6 +177,7 @@ def apply_brightness_contrast(input_img, brightness=0, contrast=0):
 
 
 class DetectionBox:
+
     def __init__(self, x=0, y=0, w=100, h=100, title="", color=(0, 255, 0)):
         self.pos_xy = [x, y]
         self.size = [w, h]
@@ -178,7 +194,8 @@ class DetectionBox:
         self.validated_number = None
         self.validation_sample_target = 50
         self.selected = False
-        self.selected_offset = [0,0]
+        self.show_controls = True
+        self.selected_offset = [0, 0]
         self.value_validation_list = []
         self.left_digit_probability = 0
         self.right_digit_probability = 0
@@ -192,7 +209,6 @@ class DetectionBox:
         ### LOAD CONVOLUTIONAL NEURAL NETWORK MODEL
         pickle_in = open("model_trained_20.p", "rb")
         self.model = pickle.load(pickle_in)
-
         self.min_sngl_digit_box_width = 100
         self.max_sngl_digit_box_width = 250
         self.min_sngl_digit_box_height = 200
@@ -212,10 +228,12 @@ class DetectionBox:
         cv2.rectangle(image, self.pt1, self.pt2, self.color, self.thickness)
         cv2.putText(image, f'{self.title} => ' + str(self.validated_number), (self.pos_xy[0], self.pos_xy[1] - 10),
                     cv2.FONT_HERSHEY_PLAIN, 1, self.color, self.title_thickness)
+
         if self.selected:
             self.__draw_border(image, self.corner_color, 8, 5, 10)
         else:
             self.__draw_border(image, self.corner_color, 4, 5, 10)
+
         return image
 
     def __draw_border(self, image, color, thickness, r, d):
@@ -262,7 +280,17 @@ class DetectionBox:
 
     @staticmethod
     def draw_bounding_box(image, bbox, color_bgr=(0, 255, 0), thickness=2, bias=0):
-        cv2.rectangle(image, (bbox[0] - bias, bbox[1] - bias), (bbox[0] + bbox[2] + bias, bbox[1] + bbox[3] + bias), color_bgr, 2)
+        cv2.rectangle(image, (bbox[0] - bias, bbox[1] - bias), (bbox[0] + bbox[2] + bias, bbox[1] + bbox[3] + bias),
+                      color_bgr, 2)
+
+    def __auto_threshold(self):
+        min_value = 10
+        threshold_step = 1
+
+        if self.selected: return
+
+        if self.thresholdValue > 254: self.thresholdValue = min_value
+        self.thresholdValue += threshold_step
 
     def __apply_brightness_contrast(self, input_img, brightness=0, contrast=0):
         if brightness != 0:
@@ -288,7 +316,7 @@ class DetectionBox:
 
         return buf
 
-    def pre_process_img(self, image, scaleFactor=1):
+    def __pre_process_img(self, image, scaleFactor=1):
         """
         PRE-PROCESSES THE IMAGE, CROPS THE BOX AREA AND RESIZES IT FOR BETTER VIEWING
         A RESIZED AND HSV MASKED IMAGE IS RETURNED
@@ -300,28 +328,27 @@ class DetectionBox:
         x, y = self.pt1
         w, h = self.size
         kernel = np.ones((3, 3), np.uint8)  # Prepare kernel
-        pts1 = np.float32([[x, y], [x + w, y], [x, y + h], [x + w, y + h]])    # Source points FROM for warping
+        pts1 = np.float32([[x, y], [x + w, y], [x, y + h], [x + w, y + h]])  # Source points FROM for warping
         pts2 = np.float32([[0, 0], [0 + w * scaleFactor, 0], [0, 0 + h * scaleFactor],
-                           [0 + w * scaleFactor, 0 + h * scaleFactor]])    # Warping destination points TO
-        matrix = cv2.getPerspectiveTransform(pts1, pts2)    # Get rtansformation matrix FROM->TO
-        img = cv2.warpPerspective(image, matrix, (w * scaleFactor, h * scaleFactor))    # Warp/Crop image
-        img = cv2.resize(img, (1000, 1000))     # Resize to 1000px by 1000px
-        img = self.__apply_brightness_contrast(img, -20, 30)    # Apply brightness and contrast correction
+                           [0 + w * scaleFactor, 0 + h * scaleFactor]])  # Warping destination points TO
+        matrix = cv2.getPerspectiveTransform(pts1, pts2)  # Get rtansformation matrix FROM->TO
+        img = cv2.warpPerspective(image, matrix, (w * scaleFactor, h * scaleFactor))  # Warp/Crop image
+        img = cv2.resize(img, (1000, 1000))  # Resize to 1000px by 1000px
+        img = self.__apply_brightness_contrast(img, -20, 30)  # Apply brightness and contrast correction
         # img = cv2.fastNlMeansDenoisingColored(img,None,10,10,7,21) ### THIS OPERATION IS CPU INTENSIVE
 
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)  #BGR to HSV for HSV Filtering mask
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)  # BGR to HSV for HSV Filtering mask
         l_hsv, u_hsv = self.__hsv_filter()  # Get HSV boundaries from class attributes fed by track bars
-        img_mask = cv2.inRange(img, l_hsv, u_hsv)   # Apply in range for HSV filtering
-        img_masked = cv2.bitwise_and(img, img, mask=img_mask)   # Apply HSV mask
+        img_mask = cv2.inRange(img, l_hsv, u_hsv)  # Apply in range for HSV filtering
+        img_masked = cv2.bitwise_and(img, img, mask=img_mask)  # Apply HSV mask
         # cv2.imshow("Masked Image Class", imgMasked)
 
-        img = cv2.cvtColor(img_masked, cv2.COLOR_HSV2BGR) # Return to BGR color space
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) # Go B/W color space, flattens out, goes from 3 channels to 1 chnl
+        img = cv2.cvtColor(img_masked, cv2.COLOR_HSV2BGR)  # Return to BGR color space
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)  # Go B/W color space, flattens out, goes from 3 channels to 1 chnl
         # cv2.imshow("Gray Image", img)
-        img = cv2.equalizeHist(img) # Historise to balance shadows/lights
+        img = cv2.equalizeHist(img)  # Historise to balance shadows/lights
         img = cv2.GaussianBlur(img, (5, 5), 1)  # Applies gaussian blur
-        ret, img = cv2.threshold(img, self.thresholdValue, 255, cv2.THRESH_BINARY) # Thresholds, image is 1 chnl
-        # img = cv2.adaptiveThreshold(img,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY,901,1)
+        ret, img = cv2.threshold(img, self.thresholdValue, 255, cv2.THRESH_BINARY)  # Thresholds, image is 1 chnl
         img = cv2.erode(img, kernel, iterations=1)  # Apply erosion
         img = cv2.bitwise_not(img)  # Reverses color, black over white
 
@@ -340,7 +367,6 @@ class DetectionBox:
         return img
 
     def __img_cnn_predict(self, image):
-        classIndex = 0
         image = self.__pre_process_cnn_img(image)
         class_index = int(self.model.predict_classes(image))
         predictions = self.model.predict(image)
@@ -370,7 +396,7 @@ class DetectionBox:
         upperb = np.array([h_max, s_max, v_max], dtype=np.uint8)
         return lowerb, upperb
 
-    def __update_value(self,value):
+    def __update_value(self, value):
         self.value = value
         # Validate number by finding majority
         self.validated_number = self.__validate_number(value, sample_target=self.validation_sample_target)
@@ -381,35 +407,39 @@ class DetectionBox:
         :param image: Full unmodified frame from Video Feed
         :return: Returns annotated image with drawn box and information about detected number
         """
-        detected_box_numbers = []   # Stores box coordinates where potential digits are, after shape filters
-        self.__update_value(None)   # Adds a None value to the voting list, if a number is detected later, this last
+        detected_box_numbers = []  # Stores box coordinates where potential digits are, after shape filters
+        self.__update_value(None)  # Adds a None value to the voting list, if a number is detected later, this last
         # NONE is removed and replaced with the number
 
-        img = self.pre_process_img(image)   # Pass full unmodified frame, return extracted box image ready to find
-                                            # contours, image returns with only 1 chnl, black over white background
+        img = self.__pre_process_img(image)  # Pass full unmodified frame, return extracted box image ready to find
+        # contours, image returns with only 1 chnl, black over white background
 
-        img_canny = cv2.Canny(img, 100, 150)    # Apple Canny to prepare for edge detection
-        img_contours, hierarchy = cv2.findContours(img_canny, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE) # Find contours
+        img_canny = cv2.Canny(img, 100, 150)  # Apple Canny to prepare for edge detection
+        img_contours, hierarchy = cv2.findContours(img_canny, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)  # Find contours
         # imageNew = removeBadContours(image,contours=imgContours)
 
-        img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR) # Go back to BGR color space to be able to draw in colors
-        image_canvas = img.copy()   # Makes a copy of the pre-processed frame to draw contours on, img is BGR 3ch
-                                    # black over white
+        img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)  # Go back to BGR color space to be able to draw in colors
+        image_canvas = img.copy()  # Makes a copy of the pre-processed frame to draw contours on, img is BGR 3ch
+        # black over white
         # image = removeBadContours(image,imgContours)
 
-        for cnt in img_contours:    # Process all contours one by one
+        if len(img_contours) == 0: self.__auto_threshold()  # Automatically adjust threshold if no contours were detected
+        for i, cnt in enumerate(img_contours):  # Process all contours one by one
 
-            cv2.drawContours(image_canvas, cnt, -1, (255, 0, 255), thickness=2) # Draw current contour in image_canvas
-            bbox = cv2.boundingRect(cnt)    # Get current contour bounding box data
+            if i == len(img_contours)-1:
+                self.__auto_threshold() # Automatically adjust threshold if reached the last contour without detections
+
+            cv2.drawContours(image_canvas, cnt, -1, (255, 0, 255), thickness=2)  # Draw current contour in image_canvas
+            bbox = cv2.boundingRect(cnt)  # Get current contour bounding box data
             cv2.rectangle(image_canvas, (bbox[0] - 5, bbox[1] - 5), (bbox[0] + bbox[2] + 5, bbox[1] + bbox[3] + 5),
-                          (255, 0, 0), 2)   # Draw bounding box
-            bbox_area = bbox[3] * bbox[2]   # Calculate contour bounding box area
-            contour_area = cv2.contourArea(cnt) # Get contour area
+                          (255, 0, 0), 2)  # Draw bounding box
+            bbox_area = bbox[3] * bbox[2]  # Calculate contour bounding box area
+            contour_area = cv2.contourArea(cnt)  # Get contour area
 
             fill_degree = contour_area / bbox_area  # Calculate how much of the contour is filling its bounding box
 
-            bbox_aspect_ratio = bbox[3] / bbox[2]   # Calculates aspect ratio, desired is shape similar to digit box
-                                                    # vertical rectangle
+            bbox_aspect_ratio = bbox[2] / bbox[3]  # Calculates aspect ratio w/h, desired is shape similar to digit box
+            # vertical rectangle
 
             # From here on, the current contour bounding box can be inspected in two ways, double or single digit
 
@@ -422,17 +452,17 @@ class DetectionBox:
                     self.min_fill_dregree < fill_degree < self.max_fill_dregree:
                 self.draw_bounding_box(image_canvas, bbox, color_bgr=(0, 255, 255), thickness=2, bias=5)
                 # If here, the bbox passed the filter, SPLIT BOX IN HALF AND STORE BBOX DATA IN LIST
-                x, y, w, h = bbox   # Separate the box data
+                x, y, w, h = bbox  # Separate the box data
                 bbox_middle_point = w // 2  # Calculate horizontal half
                 bbox1 = x, y, bbox_middle_point, h  # GET LEFT DIGIT, box's half left side
                 detected_box_numbers.append(bbox1)  # Store left digit box data in list, one digit stored
 
-                self.draw_bounding_box(image_canvas, bbox1, (255, 0, 255), 2, -2) # Bbox passed filter and contains
+                self.draw_bounding_box(image_canvas, bbox1, (255, 0, 255), 2, -2)  # Bbox passed filter and contains
                 # possible left digit, draw a box around it on canvas to identify it was captured
 
                 bbox2 = x + bbox_middle_point, y, w // 2, h  # GET RIGHT DIGIT, box's half right side
                 detected_box_numbers.append(bbox2)  # Store right digit box data in list, two digits stored
-                self.draw_bounding_box(image_canvas, bbox2, (255, 0, 255), 2, -2) # Bbox passed filter and contains
+                self.draw_bounding_box(image_canvas, bbox2, (255, 0, 255), 2, -2)  # Bbox passed filter and contains
                 # possible right digit, draw a box around it on canvas to identify it was captured
 
             # ================================ SINGLE DIGIT DETECTION ================================
@@ -443,18 +473,22 @@ class DetectionBox:
             # if bboxAspectRatio > 1.2 and bboxArea > 30000 and bboxArea < 100000 and bbox[3] < 300 and fillDegree <0.9:
 
             if self.min_sngl_digit_box_height < bbox[3] < self.max_sngl_digit_box_height and \
-                    self.min_sngl_digit_box_width < bbox[2] < self.max_sngl_digit_box_width:  # and minFillDregree < fillDegree < maxFillDegree:
-
+                    self.min_sngl_digit_box_width < bbox[
+                2] < self.max_sngl_digit_box_width:  # and minFillDregree < fillDegree < maxFillDegree:
                 # If here, the bbox passed the filter, STORE SINGLE BBOX DATA IN LIST
-                detected_box_numbers.append(bbox)   # Store digit box data in list, one digit stored at a time
+                detected_box_numbers.append(bbox)  # Store digit box data in list, one digit stored at a time
                 self.draw_bounding_box(image_canvas, bbox, (0, 255, 0), 2, -2)  # Bbox passed filter and contains
                 # possible digit, draw a box around it on canvas to identify it was captured
 
+
+
             if len(detected_box_numbers) == 2:  # Triggers when two bboxes are in the list whose passed all filters
                 # Two bounding boxes containing a potential digit are available
-                detected_box_numbers.sort() # Sort detected digit boxes so the lowest x is the left digit
-                self.left_digit_img = self.__crop_image(img, detected_box_numbers[0]) # Extract image portion containing left digit
-                self.right_digit_img = self.__crop_image(img, detected_box_numbers[1]) # Extract image portion containing right digit
+                detected_box_numbers.sort()  # Sort detected digit boxes so the lowest x is the left digit
+                self.left_digit_img = self.__crop_image(img, detected_box_numbers[
+                    0])  # Extract image portion containing left digit
+                self.right_digit_img = self.__crop_image(img, detected_box_numbers[
+                    1])  # Extract image portion containing right digit
 
                 # Feed digit image to CNN and take detected value and probability
                 self.left_digit, self.left_digit_probability = self.__img_cnn_predict(self.left_digit_img)
@@ -462,14 +496,14 @@ class DetectionBox:
                 self.right_digit, self.right_digit_probability = self.__img_cnn_predict(self.right_digit_img)
 
                 # Check if the certainties for both digits are higher than expected
+
                 if self.left_digit_probability > self.cnn_certainty and self.right_digit_probability > self.cnn_certainty:
                     # self.value = (int(str(self.left_digit) + str(self.right_digit)))
-                    self.value_validation_list.pop(-1)  # Digits were found, remove last None and replace with current value
-                    self.__update_value(self.left_digit * 10 + self.right_digit) # Store number if it was recognised ok
+                    self.value_validation_list.pop(
+                        -1)  # Digits were found, remove last None and replace with current value
+                    self.__update_value(self.left_digit * 10 + self.right_digit)  # Store number if it was recognised ok
 
-
-                detected_box_numbers = []   # Clear detected boxes for new detection if two boxes where in
-                break   # Exit and stop looking for contours, we already found two, wait for next frame
-        self.image = image_canvas.copy()    # Copy the annotated image on the class
+                detected_box_numbers = []  # Clear detected boxes for new detection if two boxes where in
+                break  # Exit and stop looking for contours, we already found two, wait for next frame
+        self.image = image_canvas.copy()  # Copy the annotated image on the class
         return image_canvas
-

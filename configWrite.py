@@ -32,6 +32,8 @@ def writeDefaultConfig():
         'enable_OPC_Server': 'True',
         'endpoint': '127.0.0.1',
         'port': '5000'
+        'namespace' : 'Ladles'
+        'group_name' = 'Ladle numbers'
     }
 
     config['video_feed'] = {
