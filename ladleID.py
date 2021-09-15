@@ -15,7 +15,7 @@ parser.read('config.ini')
 
 # TODO
 # Load config for all objects and return object list
-show_box_images = False
+show_box_images = False     # Flag to indicate whether to show/hide image pre-processing, good for debugging
 
 # NEURAL NETWORK SETTINGS ###
 # NEURAL NETWORK DETECTION THRESHOLD ###
@@ -212,7 +212,6 @@ def key_handler(key):
 while True:
     timer = cv2.getTickCount()
     top_left_text = []
-    top_left_text.append('-' * 25)
     ret, img = cap.read()
     if ret == False:
         continue
@@ -223,27 +222,38 @@ while True:
     _, _, right_ladle_box.colorHSVFilter = myUtils.captureHSVTrackbarValues("HSV Right Filter")
     # left_ladle_box.thresholdValue, right_ladle_box.thresholdValue = myUtils.captureThresTrackbarsValues()
 
+
     for i, box in enumerate(detection_boxes):
 
-        img = box.detect_and_draw(img)
+        img = box.detect_and_draw(img)  # Pass frame, detect and draw, returns annotated frame
+        if opcServerEnabled: opc_vars[i].set_value(box.validated_number)    # Updates value on OPC Server
+
+        # Prepares onscreen header text
         top_left_text.append(f'{box.title} => {box.validated_number} - Thres = {box.thresholdValue}')
 
-        # cv2.imshow(f'{box.title} - Left digit', box.left_digit_img)
-        # cv2.imshow(f'{box.title} - Right digit', box.right_digit_img)
-        if opcServerEnabled: opc_vars[i].set_value(box.validated_number)
+    fps = cv2.getTickFrequency() / (cv2.getTickCount() - timer) # Calulates FPS
 
-    fps = cv2.getTickFrequency() / (cv2.getTickCount() - timer)
+    # SCREEN HEADER
+    # Looks like
+    # FPS
+    # --------------------------
+    # Box Title - Thres (One line per box)
+    # --------------------------
+    top_left_text.insert(0, f'FPS {int(fps)}')
+    top_left_text.insert(1,'-' * 25)
+    top_left_text.append('-' * 25)
+
+    # SCREEN HEADER END
 
     # MENU
-    top_left_text.insert(0, f'FPS {int(fps)}')
-    top_left_text.append('-' * 25)
     top_left_text.append('"D - Show Details')
     top_left_text.append('')
     top_left_text.append('"q" to quit application')
     img = myUtils.draw_text_on_top_left_corner(img, top_left_text)
     # MENU END
-    cv2.imshow('Video Feed', img)
-    cv2.setMouseCallback('Video Feed', mousePoints)
+
+    cv2.imshow(f'Video Feed - {url}', img)   # Shows processed final image
+    cv2.setMouseCallback(f'Video Feed - {url}', mousePoints) # Mouse event handler
 
     key = cv2.waitKey(parser.getint('video_feed', 'frame_delay', fallback=500)) & 0xFF
     if key < 255: key_handler(key)
