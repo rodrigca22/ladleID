@@ -15,6 +15,7 @@ parser.read('config.ini')
 
 # TODO
 # Load config for all objects and return object list
+show_box_images = False
 
 # NEURAL NETWORK SETTINGS ###
 # NEURAL NETWORK DETECTION THRESHOLD ###
@@ -193,6 +194,21 @@ if opcServerEnabled:
 
 ### MAIN LOOP ###
 
+def key_handler(key):
+    global show_box_images
+
+    if key == ord('d') or key == ord('D'):  # Show/Hide pre-processed image details
+        show_box_images = not show_box_images
+        for boxes in detection_boxes:
+            boxes.show_processed_images = show_box_images
+
+    if key == ord('q') or key == ord('Q'):  # Quits the application
+        cap.release()
+        cv2.destroyAllWindows()
+        # sys.exit()
+        opc_server.stop()
+        quit()
+
 while True:
     timer = cv2.getTickCount()
     top_left_text = []
@@ -208,25 +224,26 @@ while True:
     # left_ladle_box.thresholdValue, right_ladle_box.thresholdValue = myUtils.captureThresTrackbarsValues()
 
     for i, box in enumerate(detection_boxes):
-        cv2.imshow(box.title, box.detect(img))
-        img = box.draw(img)
+
+        img = box.detect_and_draw(img)
         top_left_text.append(f'{box.title} => {box.validated_number} - Thres = {box.thresholdValue}')
 
-        cv2.imshow(f'{box.title} - Left digit', box.left_digit_img)
-        cv2.imshow(f'{box.title} - Right digit', box.right_digit_img)
+        # cv2.imshow(f'{box.title} - Left digit', box.left_digit_img)
+        # cv2.imshow(f'{box.title} - Right digit', box.right_digit_img)
         if opcServerEnabled: opc_vars[i].set_value(box.validated_number)
 
     fps = cv2.getTickFrequency() / (cv2.getTickCount() - timer)
+
+    # MENU
     top_left_text.insert(0, f'FPS {int(fps)}')
     top_left_text.append('-' * 25)
+    top_left_text.append('"D - Show Details')
+    top_left_text.append('')
     top_left_text.append('"q" to quit application')
     img = myUtils.draw_text_on_top_left_corner(img, top_left_text)
+    # MENU END
     cv2.imshow('Video Feed', img)
     cv2.setMouseCallback('Video Feed', mousePoints)
 
-    if cv2.waitKey(parser.getint('video_feed', 'frame_delay', fallback=500)) & 0xFF == ord('q'):
-        cap.release()
-        cv2.destroyAllWindows()
-        # sys.exit()
-        opc_server.stop()
-        quit()
+    key = cv2.waitKey(parser.getint('video_feed', 'frame_delay', fallback=500)) & 0xFF
+    if key < 255: key_handler(key)

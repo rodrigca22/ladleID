@@ -223,6 +223,8 @@ class DetectionBox:
         self.min_fill_dregree = 0.2
         self.max_fill_dregree = 0.9
 
+        self.show_processed_images = False
+
     def draw(self, image):
 
         cv2.rectangle(image, self.pt1, self.pt2, self.color, self.thickness)
@@ -401,6 +403,11 @@ class DetectionBox:
         # Validate number by finding majority
         self.validated_number = self.__validate_number(value, sample_target=self.validation_sample_target)
 
+    def detect_and_draw(self, image):
+        self.detect(image)
+        image = self.draw(image)
+        return image
+
     def detect(self, image):
         """
 
@@ -506,4 +513,23 @@ class DetectionBox:
                 detected_box_numbers = []  # Clear detected boxes for new detection if two boxes where in
                 break  # Exit and stop looking for contours, we already found two, wait for next frame
         self.image = image_canvas.copy()  # Copy the annotated image on the class
+        if self.show_processed_images:
+            cv2.imshow(self.title, image_canvas)
+            cv2.imshow(f'{self.title} - Left digit', self.left_digit_img)
+            cv2.imshow(f'{self.title} - Right digit', self.right_digit_img)
+        else:
+            try:
+                cv2.destroyWindow(self.title)
+            except:
+                pass
+
+            try:
+                cv2.destroyWindow(f'{self.title} - Left digit')
+            except:
+                pass
+            try:
+                cv2.destroyWindow(f'{self.title} - Right digit')
+            except:
+                pass
+
         return image_canvas
