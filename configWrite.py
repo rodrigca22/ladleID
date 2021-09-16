@@ -7,7 +7,7 @@ config = ConfigParser()
 def writeDefaultConfig():
     config['settings'] = {
         'debug': 'false',
-        'dataDumpEnabled': 'False',     # Stores images from video feed every 1 min and writes debug data on s CSV file
+        'dataDumpEnabled': 'False',  # Stores images from video feed every 1 min and writes debug data on s CSV file
         'leftScanEnabled': 'False',
         'rightScanEnabled': 'False',
         'colorFilterON': 'True',
@@ -31,9 +31,9 @@ def writeDefaultConfig():
     config['opc-ua-server'] = {
         'enable_OPC_Server': 'True',
         'endpoint': '127.0.0.1',
-        'port': '5000'
-        'namespace' : 'Ladles'
-        'group_name' = 'Ladle numbers'
+        'port': '5000',
+        'namespace': 'Ladles',
+        'group_name': 'Ladle numbers'
     }
 
     config['video_feed'] = {
@@ -82,9 +82,7 @@ def writeDefaultConfig():
         'maxFillDegree': '0.9'
     }
 
-
-
-    with open('config.ini','w') as f:
+    with open('config.ini', 'w') as f:
         config.write(f)
 
 

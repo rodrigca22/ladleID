@@ -15,7 +15,7 @@ parser.read('config.ini')
 
 # TODO
 # Load config for all objects and return object list
-show_box_images = False     # Flag to indicate whether to show/hide image pre-processing, good for debugging
+SHOW_BOX_IMAGES = False  # Flag to indicate whether to show/hide image pre-processing, good for debugging
 
 # NEURAL NETWORK SETTINGS ###
 # NEURAL NETWORK DETECTION THRESHOLD ###
@@ -26,7 +26,7 @@ cnnCertainty = parser.getfloat('neural_network', 'mincertainty')
 # scaleFactor = 10
 scaleFactor = parser.getint('image_processing', 'scalefactor', fallback=10)
 
-# CROPPING COORDINATES FOR FIXED BOXES
+# ===== CROPPING COORDINATES FOR FIXED BOXES =====
 x1 = parser.getint('box_coordinates', 'x1')
 y1 = parser.getint('box_coordinates', 'y1')
 h1 = parser.getint('box_coordinates', 'h1')
@@ -68,9 +68,9 @@ maxDblDigitBoxHeigth = parser.getint('double_digit_boxes', 'maxdbldigitboxheigth
 minFillDregree = parser.getfloat('box_filter_params', 'minfilldregree')
 maxFillDegree = parser.getfloat('box_filter_params', 'maxfilldegree')
 
-### OPTIONS ###
-dataDumpEnabled = parser.getboolean('settings',
-                                    'datadumpenabled')  # Stores images from video feed every 1 min and writes debug data on s CSV file
+# ===== OPTIONS =====
+# Stores images from video feed every 1 min and writes debug data on s CSV file
+dataDumpEnabled = parser.getboolean('settings','datadumpenabled')
 leftScanEnabled = parser.getboolean('settings', 'leftscanenabled')
 rightScanEnabled = parser.getboolean('settings', 'rightscanenabled')
 colorFilterON = parser.getboolean('settings', 'colorfilteron')
@@ -96,7 +96,7 @@ colorHSVFilter2 = (parser.getint('HSV_Filter', 'huemin2'),
 maxNumberSamples = parser.getint('neural_network',
                                  'validationsamples')  # SAMPLES TO TAKE BEFORE DECIDING THE LADLE NUMBER IS CORRECT, ASK MANY ANSWER ONCE
 
-### CREATE AND INITIALISE HSV TRACKBARS
+# ===== CREATE AND INITIALISE HSV TRACKBARS =====
 
 myUtils.createHSVTrackbars("HSV Left Filter", HueMin=colorHSVFilter1[0], HueMax=colorHSVFilter1[1],
                            SatMin=colorHSVFilter1[2],
@@ -106,7 +106,7 @@ myUtils.createHSVTrackbars("HSV Right Filter", HueMin=colorHSVFilter2[0], HueMax
                            SatMin=colorHSVFilter2[2],
                            SatMax=colorHSVFilter2[3], ValMin=colorHSVFilter2[4], ValMax=colorHSVFilter2[5])
 
-### CREATE AND INITIALISE THRESOLDING ADJUST TRACKBARS
+# ===== CREATE AND INITIALISE THRESOLDING ADJUST TRACKBARS =====
 
 myUtils.createThresTrackbars("ThresholdTrackBars", thresholdladleleft, thresholdladleright)
 
@@ -120,7 +120,7 @@ right_ladle_box = detection_boxes[1]
 left_ladle_box.title = 'Left Ladle'
 left_ladle_box.corner_color = (0, 0, 255)
 left_ladle_box.title_thickness = 1
-left_ladle_box.update(x1, y1)
+left_ladle_box.update_pos(x1, y1)
 left_ladle_box.colorHSVFilter = colorHSVFilter1
 left_ladle_box.thresholdValue = thresholdladleleft
 left_ladle_box.validation_sample_target = maxNumberSamples
@@ -132,7 +132,7 @@ right_ladle_box.colorHSVFilter = colorHSVFilter2
 right_ladle_box.thresholdValue = thresholdladleright
 right_ladle_box.validation_sample_target = maxNumberSamples
 
-right_ladle_box.update(x2, y2)
+right_ladle_box.update_pos(x2, y2)
 # ============================================
 
 # url = "rtsp://10.81.98.80/?line=4?inst=2"
@@ -140,7 +140,7 @@ right_ladle_box.update(x2, y2)
 url = parser.get('video_feed', 'url')
 
 cap = cv2.VideoCapture(url)
-# Check if the webcam is opened correctly
+# Check if the web cam is opened correctly
 if not cap.isOpened():
     raise IOError("Cannot open camera feed")
 
@@ -148,11 +148,11 @@ ret, img = cap.read()
 print(img.shape)
 
 
-def mousePoints(event, x, y, flags, params):
+def mouse_points(event, x, y, flags, params):
     if event == cv2.EVENT_MOUSEMOVE:
         for obj in detection_boxes:
             if obj.selected:
-                obj.update(x - obj.selected_offset[0], y - obj.selected_offset[1])
+                obj.update_pos(x - obj.selected_offset[0], y - obj.selected_offset[1])
 
     if event == cv2.EVENT_LBUTTONDOWN:
         for obj in detection_boxes:
@@ -170,7 +170,7 @@ def mousePoints(event, x, y, flags, params):
         # print(f'Mouse is at X={x},Y={y}')
 
 
-### OPC SERVER ###
+# ===== OPC SERVER =====
 opcServerEnabled = parser.getboolean('opc-ua-server', 'enable_opc_server', fallback=False)
 if opcServerEnabled:
     opc_vars = []
@@ -179,7 +179,7 @@ if opcServerEnabled:
                                                                                              fallback=5000)
     opc_server.set_endpoint(opc_endpoint)
 
-    ### Register NameSpace
+    # Register OPC NameSpace
     namespace = opc_server.register_namespace(parser.get('opc-ua-server', 'namespace', fallback='Not defined'))
     node = opc_server.get_objects_node()
     opc_obj = node.add_object(namespace, parser.get('opc-ua-server', 'group_name', fallback='Group Not defined'))
@@ -190,48 +190,52 @@ if opcServerEnabled:
     opc_server.start()
     print("OPC-UA Server Online")
     print('Listening on', opc_endpoint)
-    ### OPC SERVER END ###
+    # ===== OPC SERVER END =====
 
-### MAIN LOOP ###
 
-def key_handler(key):
-    global show_box_images
+def key_handler(key_code):
+    global SHOW_BOX_IMAGES
 
-    if key == ord('d') or key == ord('D'):  # Show/Hide pre-processed image details
-        show_box_images = not show_box_images
+    if key_code == ord('d') or key_code == ord('D'):  # Show/Hide pre-processed image details
+        SHOW_BOX_IMAGES = not SHOW_BOX_IMAGES
         for boxes in detection_boxes:
-            boxes.show_processed_images = show_box_images
+            boxes.show_processed_images = SHOW_BOX_IMAGES
 
-    if key == ord('q') or key == ord('Q'):  # Quits the application
+    if key_code == ord('s'):
+        detection_boxes[0].write_config()
+
+    if key_code == ord('h') or key_code == ord('H'):    # Show/Hide HSV Controls
+        pass
+
+    if key_code == ord('q') or key_code == ord('Q'):  # Quits the application
         cap.release()
         cv2.destroyAllWindows()
         # sys.exit()
         opc_server.stop()
         quit()
 
+# MAIN LOOP
 while True:
     timer = cv2.getTickCount()
     top_left_text = []
     ret, img = cap.read()
-    if ret == False:
+    if not ret:
         continue
-
-
 
     _, _, left_ladle_box.colorHSVFilter = myUtils.captureHSVTrackbarValues("HSV Left Filter")
     _, _, right_ladle_box.colorHSVFilter = myUtils.captureHSVTrackbarValues("HSV Right Filter")
     # left_ladle_box.thresholdValue, right_ladle_box.thresholdValue = myUtils.captureThresTrackbarsValues()
 
-
     for i, box in enumerate(detection_boxes):
 
         img = box.detect_and_draw(img)  # Pass frame, detect and draw, returns annotated frame
-        if opcServerEnabled: opc_vars[i].set_value(box.validated_number)    # Updates value on OPC Server
+        if opcServerEnabled:
+            opc_vars[i].set_value(box.validated_number)  # Updates value on OPC Server
 
         # Prepares onscreen header text
         top_left_text.append(f'{box.title} => {box.validated_number} - Thres = {box.thresholdValue}')
 
-    fps = cv2.getTickFrequency() / (cv2.getTickCount() - timer) # Calulates FPS
+    fps = cv2.getTickFrequency() / (cv2.getTickCount() - timer)  # Calculates FPS
 
     # SCREEN HEADER
     # Looks like
@@ -240,20 +244,21 @@ while True:
     # Box Title - Thres (One line per box)
     # --------------------------
     top_left_text.insert(0, f'FPS {int(fps)}')
-    top_left_text.insert(1,'-' * 25)
+    top_left_text.insert(1, '-' * 25)
     top_left_text.append('-' * 25)
 
     # SCREEN HEADER END
 
     # MENU
-    top_left_text.append('"D - Show Details')
+    top_left_text.append('D - Show Details')
     top_left_text.append('')
     top_left_text.append('"q" to quit application')
     img = myUtils.draw_text_on_top_left_corner(img, top_left_text)
     # MENU END
 
-    cv2.imshow(f'Video Feed - {url}', img)   # Shows processed final image
-    cv2.setMouseCallback(f'Video Feed - {url}', mousePoints) # Mouse event handler
+    cv2.imshow(f'Video Feed - {url}', img)  # Shows processed final image
+    cv2.setMouseCallback(f'Video Feed - {url}', mouse_points)  # Mouse event handler
 
+    # print(detection_boxes[0].__dict__.keys())
     key = cv2.waitKey(parser.getint('video_feed', 'frame_delay', fallback=500)) & 0xFF
     if key < 255: key_handler(key)

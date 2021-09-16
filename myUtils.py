@@ -258,7 +258,7 @@ class DetectionBox:
         cv2.line(image, (x2, y2 - r), (x2, y2 - r - d), color, thickness)
         cv2.ellipse(image, (x2 - r, y2 - r), (r, r), 0, 0, 90, color, thickness)
 
-    def update(self, x, y):
+    def update_pos(self, x, y):
         self.pos_xy = x, y
         self.pt1 = [x, y]
         self.pt2 = [x + self.size[0], y + self.size[1]]
